@@ -256,6 +256,21 @@ export default function Dashboard({
             />
           </div>
         </div>
+
+        {/* Contact */}
+        <div className="mt-24 border-t border-gray-300 pt-10 text-center">
+          <p className="text-lg text-gray-700">
+            Any inquiries, contact{" "}
+            <a
+              href="mailto:maintelyd@gmail.com"
+              className="font-medium text-gray-900 underline hover:text-gray-600"
+            >
+              maintelyd@gmail.com
+            </a>
+            . Happy to help!
+          </p>
+        </div>
+
       </div>
     </div>
   );
