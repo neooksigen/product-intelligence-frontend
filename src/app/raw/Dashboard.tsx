@@ -86,7 +86,7 @@ useEffect(() => {
   // calculate 2 days before
   const max = new Date(maxDate);
   const min = new Date(max);
-  min.setDate(max.getDate() - 2);
+  min.setDate(max.getDate() - 1); //edited 23 may 2026
 
   const format = (dt: Date) => dt.toISOString().slice(0, 10);
 
