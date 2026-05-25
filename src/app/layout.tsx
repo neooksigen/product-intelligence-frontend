@@ -30,9 +30,13 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children} <Analytics /> 
+            <GoogleTagManager gtmId="GTM-N7V5HZ84" />  
+      <body className="min-h-full flex flex-col">
         {/*25 May 2026: add Google Tag Manager*/}
-      <GoogleTagManager gtmId="GTM-N7V5HZ84" /> 
+      <GoogleTagManager gtmId="GTM-N7V5HZ84" />         
+        {children} 
+        <Analytics /> 
+
         {/*25 may 2026: add Linkedin insight tag script. */}      
 <Script id="linkedin-insight" strategy="afterInteractive">
   {`
