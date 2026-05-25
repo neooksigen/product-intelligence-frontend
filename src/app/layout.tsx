@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import Script from "next/script";
+import { GoogleTagManager } from '@next/third-parties/google'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,6 +31,8 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children} <Analytics /> 
+        {/*25 May 2026: add Google Tag Manager*/}
+      <GoogleTagManager gtmId="GTM-N7V5HZ84" /> 
         {/*25 may 2026: add Linkedin insight tag script. */}      
 <Script id="linkedin-insight" strategy="afterInteractive">
   {`
