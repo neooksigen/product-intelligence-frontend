@@ -31,20 +31,19 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">{children} <Analytics /> 
         {/*25 may 2026: add Linkedin insight tag script. */}      
-<script type="text/javascript">
-_linkedin_partner_id = "9374748";
-window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
-window._linkedin_data_partner_ids.push(_linkedin_partner_id);
-</script><script type="text/javascript">
-(function(l) {
-if (!l){window.lintrk = function(a,b){window.lintrk.q.push([a,b])};
-window.lintrk.q=[]}
-var s = document.getElementsByTagName("script")[0];
-var b = document.createElement("script");
-b.type = "text/javascript";b.async = true;
-b.src = "https://snap.licdn.com/li.lms-analytics/insight.min.js";
-s.parentNode.insertBefore(b, s);})(window.lintrk);
-</script>
+<Script id="linkedin-insight" strategy="afterInteractive">
+  {`
+    _linkedin_partner_id = "9374748";
+    window._linkedin_data_partner_ids =
+      window._linkedin_data_partner_ids || [];
+    window._linkedin_data_partner_ids.push(_linkedin_partner_id);
+  `}
+</Script>
+
+<Script
+  src="https://snap.licdn.com/li.lms-analytics/insight.min.js"
+  strategy="afterInteractive"
+/>
         
       </body>
     </html>
