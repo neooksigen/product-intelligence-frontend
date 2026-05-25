@@ -30,7 +30,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-            <GoogleTagManager gtmId="GTM-N7V5HZ84" />  
+
       <body className="min-h-full flex flex-col">
         {/*25 May 2026: add Google Tag Manager*/}
       <GoogleTagManager gtmId="GTM-N7V5HZ84" />         
