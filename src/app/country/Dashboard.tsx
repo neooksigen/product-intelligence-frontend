@@ -40,6 +40,9 @@ type MonthlyPrice = {
   price_cny_standardized_median?: number;
   price_aud_standardized_median?: number;
   price_sgd_standardized_median?: number;
+
+  measurement_scale_standardized: string;   // NEW
+  
 };
 
 // ✅ constrain metric to ONLY numeric keys
@@ -58,29 +61,49 @@ export default function Dashboard({ data }: { data: MonthlyPrice[] }) {
   const [country, setCountry] = useState("");
   const [countries, setCountries] = useState<string[]>([]);
 
+const [measurementScales, setMeasurementScales] = useState<string[]>([]);
+const [selectedMeasurementScale, setSelectedMeasurementScale] = useState("");  
+
   const [metric, setMetric] = useState<MetricKey>(
    "price_usd_standardized_median" as MetricKey
   );
 
   const [filtered, setFiltered] = useState<MonthlyPrice[]>([]);
 
-  useEffect(() => {
-    if (!data) return;
+useEffect(() => {
+  if (!data) return;
 
-    const uniqueCountries = [...new Set(data.map((d) => d.country))];
-    setCountries(uniqueCountries);
-  }, [data]);
+  const uniqueCountries = [...new Set(data.map((d) => d.country))]
+    .sort((a, b) => a.localeCompare(b));
 
-  useEffect(() => {
-    if (!data || !country) {
-      setFiltered([]);
-      return;
-    }
+  const uniqueMeasurementScales = [
+    ...new Set(data.map((d) => d.measurement_scale_standardized))
+  ].sort((a, b) => a.localeCompare(b));
 
-    const newFiltered = data.filter((d) => d.country === country);
+  setCountries(uniqueCountries);
+  setMeasurementScales(uniqueMeasurementScales);
+}, [data]);
 
-    setFiltered(newFiltered);
-  }, [country, data]);
+useEffect(() => {
+  if (!data || !country) {
+    setFiltered([]);
+    return;
+  }
+
+  let result = data.filter(
+    (d) => d.country === country
+  );
+
+  if (selectedMeasurementScale) {
+    result = result.filter(
+      (d) =>
+        d.measurement_scale_standardized ===
+        selectedMeasurementScale
+    );
+  }
+
+  setFiltered(result);
+}, [country, selectedMeasurementScale, data]);
 
   const groupedData = useMemo(() => {
     const map: Record<string, MonthlyPrice[]> = {};
@@ -125,6 +148,29 @@ export default function Dashboard({ data }: { data: MonthlyPrice[] }) {
       ))}
     </select>
   </div>
+
+{/* MEASUREMENT SCALE */}
+<div>
+  <label className="font-semibold">
+    Select Measurement Scale
+  </label>
+
+  <select
+    className="w-full border border-black bg-white p-2 text-black"
+    value={selectedMeasurementScale}
+    onChange={(e) =>
+      setSelectedMeasurementScale(e.target.value)
+    }
+  >
+    <option value="">All</option>
+
+    {measurementScales.map((m) => (
+      <option key={m} value={m}>
+        {m}
+      </option>
+    ))}
+  </select>
+</div>
 
   {/* METRIC */}
   <div>
