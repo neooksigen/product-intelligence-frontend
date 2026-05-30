@@ -39,6 +39,7 @@ type MonthlyPrice = {
   price_cny_standardized_median?: number;
   price_aud_standardized_median?: number;
   price_sgd_standardized_median?: number;
+  measurement_scale_standardized: string;  
 };
 
 // ✅ constrain metric to ONLY numeric keys
@@ -56,6 +57,7 @@ const COLORS = [
 export default function Dashboard({ data }: { data: MonthlyPrice[] }) {
   const [filtered, setFiltered] = useState<MonthlyPrice[]>(data || []);
   const [categories, setCategories] = useState<string[]>([]);
+  const [measurementScales, setMeasurementScales] = useState<string[]>([]);  
 
   // ✅ FIX 1: strongly typed metric
   const [metric, setMetric] = useState<MetricKey>(
@@ -63,12 +65,19 @@ export default function Dashboard({ data }: { data: MonthlyPrice[] }) {
   );
 
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedMeasurementScale, setSelectedMeasurementScale] = useState("");  
   const [startMonth, setStartMonth] = useState("");
   const [endMonth, setEndMonth] = useState("");
 
   useEffect(() => {
     if (!data) return;
-    setCategories([...new Set(data.map((d) => d.product_category))]);
+  setCategories(
+    [...new Set(data.map((d) => d.product_category))].sort()
+  );
+
+  setMeasurementScales(
+    [...new Set(data.map((d) => d.measurement_scale_standardized))].sort()
+  );
     setFiltered(data);
   }, [data]);
 
@@ -83,6 +92,14 @@ export default function Dashboard({ data }: { data: MonthlyPrice[] }) {
       );
     }
 
+if (selectedMeasurementScale) {
+  newFiltered = newFiltered.filter(
+    (d) =>
+      d.measurement_scale_standardized ===
+      selectedMeasurementScale
+  );
+}    
+
     if (startMonth) {
       newFiltered = newFiltered.filter((d) => d.year_month >= startMonth);
     }
@@ -92,7 +109,13 @@ export default function Dashboard({ data }: { data: MonthlyPrice[] }) {
     }
 
     setFiltered(newFiltered);
-  }, [selectedCategory, startMonth, endMonth, data]);
+}, [
+  selectedCategory,
+  selectedMeasurementScale,
+  startMonth,
+  endMonth,
+  data,
+]);
 
   return (
 <div className="min-h-screen bg-white text-black">
@@ -117,6 +140,27 @@ export default function Dashboard({ data }: { data: MonthlyPrice[] }) {
             ))}
           </select>
         </div>
+
+{/* MEASUREMENT SCALE */}
+<div>
+  <label className="font-semibold">
+    Select Measurement Scale
+  </label>
+
+  <select
+    className="w-full border border-black bg-white p-2 text-black"
+    value={selectedMeasurementScale}
+    onChange={(e) =>
+      setSelectedMeasurementScale(e.target.value)
+    }
+  >
+    <option value="">All</option>
+
+    {measurementScales.map((m) => (
+      <option key={m}>{m}</option>
+    ))}
+  </select>
+</div>
 
         {/* DATE RANGE */}
         <div>
