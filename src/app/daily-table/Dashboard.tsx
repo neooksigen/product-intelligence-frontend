@@ -42,6 +42,7 @@ type DailyPrice = {
 
   stddev_price_local?: number;
   update_timestamp_utc?: string;
+  measurement_scale_standardized: string;   
 };
 
 // ✅ constrain metric to ONLY numeric keys
@@ -59,9 +60,11 @@ const COLORS = [
 export default function Dashboard({ data }: { data: DailyPrice[] }) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [selectedMeasurementScales, setSelectedMeasurementScales] = useState<string[]>([]);  
 
   const [countries, setCountries] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [measurementScales, setMeasurementScales] = useState<string[]>([]);  
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -74,11 +77,16 @@ export default function Dashboard({ data }: { data: DailyPrice[] }) {
   const sortedCategories = [...new Set(data.map(d => d.product_category))]
     .sort((a, b) => a.localeCompare(b));
 
-  const sortedCountries = [...new Set(data.map(d => d.country))]
+const sortedCountries = [...new Set(data.map(d => d.country))]
+  .sort((a, b) => a.localeCompare(b));
+
+const sortedMeasurementScales =
+  [...new Set(data.map(d => d.measurement_scale_standardized))]
     .sort((a, b) => a.localeCompare(b));
 
-  setCategories(sortedCategories);
-  setCountries(sortedCountries);    
+setCategories(sortedCategories);
+setCountries(sortedCountries);
+setMeasurementScales(sortedMeasurementScales);
   }, [data]);
 
   useEffect(() => {
@@ -98,6 +106,14 @@ export default function Dashboard({ data }: { data: DailyPrice[] }) {
     );
   }
 
+if (selectedMeasurementScales.length > 0) {
+  result = result.filter(d =>
+    selectedMeasurementScales.includes(
+      d.measurement_scale_standardized
+    )
+  );
+}  
+
   if (startDate) {
     result = result.filter(d => d.date >= startDate);
   }
@@ -107,7 +123,14 @@ export default function Dashboard({ data }: { data: DailyPrice[] }) {
   }
 
   setFiltered(result);
-  }, [data, selectedCategories, selectedCountries, startDate, endDate]);
+}, [
+  data,
+  selectedCategories,
+  selectedCountries,
+  selectedMeasurementScales,
+  startDate,
+  endDate
+]);
 
   return (
 <div className="min-h-screen bg-white text-black">
@@ -134,6 +157,31 @@ export default function Dashboard({ data }: { data: DailyPrice[] }) {
   >
     {categories.map((c) => (
       <option key={c}>{c}</option>
+    ))}
+  </select>
+</div>
+
+{/* MEASUREMENT SCALE MULTI */}
+<div>
+  <label className="font-semibold">
+    Select Measurement Scales
+  </label>
+
+  <select
+    multiple
+    className="w-full border p-2 h-32"
+    value={selectedMeasurementScales}
+    onChange={(e) =>
+      setSelectedMeasurementScales(
+        Array.from(
+          e.target.selectedOptions,
+          (opt) => opt.value
+        )
+      )
+    }
+  >
+    {measurementScales.map((m) => (
+      <option key={m}>{m}</option>
     ))}
   </select>
 </div>
@@ -233,6 +281,7 @@ export default function Dashboard({ data }: { data: DailyPrice[] }) {
         <th className="border border-black p-2 text-black">Standard Deviation Local Price</th>
         <th className="border border-black p-2 text-black">Count Products</th>
         <th className="border border-black p-2 text-black">Update Timestamp (UTC)</th>
+        <th className="border border-black p-2 text-black">Measurement Scale Standardized</th>        
       </tr>
     </thead>
     <tbody>
@@ -259,7 +308,8 @@ export default function Dashboard({ data }: { data: DailyPrice[] }) {
           <td className="border border-black p-2 text-black bg-white">{row.price_sgd_standardized_median}</td> 
           <td className="border border-black p-2 text-black bg-white">{row.stddev_price_local}</td>   
           <td className="border border-black p-2 text-black bg-white">{row.count_products}</td>   
-          <td className="border border-black p-2 text-black bg-white">{row.update_timestamp_utc}</td>                                                                                                                                                                            
+          <td className="border border-black p-2 text-black bg-white">{row.update_timestamp_utc}</td>      
+          <td className="border border-black p-2 text-black bg-white">{row.measurement_scale_standardized}</td>                                                                                                                                                                                   
         </tr>
       ))}
     </tbody>
