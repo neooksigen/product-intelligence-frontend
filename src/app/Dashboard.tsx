@@ -13,6 +13,7 @@ type DashboardProps = {
     date: string;
     country: string;
     count_all_data_collected: number;
+    count_all_data_collected_refined: number;
   }[];
   lastUpdate: string;
 };
@@ -158,6 +159,9 @@ export default function Dashboard({
                 <th className="border border-gray-300 px-6 py-4 text-sm font-medium text-gray-700">
                   Data Mining Result
                 </th>
+                <th className="border border-gray-300 px-6 py-4 text-sm font-medium text-gray-700">
+                  Refining Result
+                </th>                
               </tr>
             </thead>
 
@@ -175,6 +179,9 @@ export default function Dashboard({
                   <td className="border border-gray-300 px-6 py-4 text-sm text-gray-700">
                     {row.count_all_data_collected.toLocaleString()}
                   </td>
+                  <td className="border border-gray-300 px-6 py-4 text-sm text-gray-700">
+                    {row.count_all_data_collected_refined.toLocaleString()}
+                  </td>                  
                 </tr>
               ))}
             </tbody>
