@@ -81,8 +81,7 @@ export default function Dashboard({
           </h2>
 
           <p className="mt-10 text-3xl font-light text-gray-700">
-            We are an early phase business for data mining around the world
-            with AI.
+            We are an early phase business for global data discovery, powered with AI.
           </p>
 
           <p className="mt-8 text-3xl font-light text-gray-700">
@@ -93,25 +92,25 @@ export default function Dashboard({
         {/* Metrics */}
         <div className="mt-20 grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard
-            title="Data mined since March 2026"
+            title="Product prices discovered since March 2026"
             value={totalCollected}
             subtitle=""
           />
 
           <MetricCard
-            title="Data mined & refined since March 2026"
+            title="Product prices refined since March 2026"
             value={totalRefined}
             subtitle=""
           />
 
           <MetricCard
-            title="Data mined on yesterday"
+            title="Product prices discovered on yesterday"
             value={yesterdayCollected}
             subtitle=""
           />
 
           <MetricCard
-            title="Data mined on today"
+            title="Product prices discovered on today"
             value={todayCollected}
             subtitle=""
           />
@@ -122,7 +121,7 @@ export default function Dashboard({
 
   {/* Title */}
   <h3 className="mb-6 text-3xl font-light text-gray-700">
-    Last 1 Month Data Mining Result
+    Last 1 Month Product Price Discovery Result
   </h3>
 
   {(() => {
@@ -157,7 +156,7 @@ export default function Dashboard({
                 </th>
 
                 <th className="border border-gray-300 px-6 py-4 text-sm font-medium text-gray-700">
-                  Data Mining Result
+                  Product Price Discovery Result
                 </th>
                 <th className="border border-gray-300 px-6 py-4 text-sm font-medium text-gray-700">
                   Refining Result
