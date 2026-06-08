@@ -81,7 +81,7 @@ export default function Dashboard({
           </h2>
 
           <p className="mt-10 text-3xl font-light text-gray-700">
-            We are an early phase business for global data discovery, powered with AI.
+            We are an early phase business for reliable global data intelligence and analytics, powered with AI.
           </p>
 
           <p className="mt-8 text-3xl font-light text-gray-700">
