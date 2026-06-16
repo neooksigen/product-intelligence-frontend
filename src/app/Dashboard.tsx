@@ -29,7 +29,7 @@ function MetricCard({
 }) {
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="flex h-[110px] w-[220px] items-center justify-center rounded-full border border-gray-500 bg-white px-6 text-center shadow-sm">
+      <div className="flex h-[110px] w-[300px] items-center justify-center rounded-full border border-gray-500 bg-white px-6 text-center shadow-sm">
         <div>
           <p className="text-mg font-small text-gray-700">{title}</p>
           <p className="mt-2 text-2xl font-semibold text-gray-800">
