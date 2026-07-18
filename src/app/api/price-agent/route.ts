@@ -7,10 +7,11 @@ export const dynamic = "force-dynamic";
 type PriceRow = Record<string, unknown>;
 type Currency = "local" | "usd" | "eur" | "chf" | "jpy" | "cny" | "aud" | "sgd";
 type Aggregate = { product: string; country: string; scale: string; period?: string; recordCount: number; averageUnitPrice: number; medianUnitPrice: number; minimumUnitPrice: number; maximumUnitPrice: number };
+type QueryPlan = { currency?: Currency; countries?: string[]; products?: string[]; startDate?: string; endDate?: string; historical?: boolean };
 
 const priceFields: Record<Currency, string> = { local: "price_local", usd: "price_usd", eur: "price_eur", chf: "price_chf", jpy: "price_jpy", cny: "price_cny", aud: "price_aud", sgd: "price_sgd" };
 const currencyLabels: Record<Currency, string> = { local: "local currency", usd: "USD", eur: "EUR", chf: "CHF", jpy: "JPY", cny: "CNY", aud: "AUD", sgd: "SGD" };
-const ignoredWords = new Set(["a", "an", "and", "are", "average", "by", "can", "comparison", "compare", "currency", "for", "from", "give", "hi", "historical", "history", "how", "i", "in", "is", "me", "of", "on", "per", "please", "price", "prices", "recommend", "show", "the", "to", "unit", "what", "with", "year", "usd", "eur", "chf", "jpy", "cny", "aud", "sgd", "local"]);
+const ignoredWords = new Set(["a", "an", "and", "are", "average", "by", "can", "category", "comparison", "compare", "currency", "for", "from", "give", "hi", "historical", "history", "how", "i", "in", "is", "me", "median", "name", "of", "on", "per", "please", "price", "prices", "product", "products", "recommend", "show", "the", "to", "unit", "what", "with", "year", "usd", "eur", "chf", "jpy", "cny", "aud", "sgd", "local"]);
 const apology = "Sorry, I’m unable to fulfill this request from the detail_price database.";
 
 function string(value: unknown) { return typeof value === "string" ? value : ""; }
@@ -28,6 +29,51 @@ function parseCurrency(request: string): Currency {
   const words = normal(request).split(" ");
   const currency = (["usd", "eur", "chf", "jpy", "cny", "aud", "sgd"] as Currency[]).find((value) => words.includes(value));
   return currency ?? (normal(request).includes("local currency") ? "local" : "usd");
+}
+
+function validCurrency(value: unknown): Currency | undefined {
+  return typeof value === "string" && value in priceFields ? value as Currency : undefined;
+}
+
+function validDate(value: unknown) {
+  return typeof value === "string" && /^20\d{2}-\d{2}-\d{2}$/.test(value) ? value : undefined;
+}
+
+function planFromJson(value: unknown): QueryPlan | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  const strings = (input: unknown) => Array.isArray(input)
+    ? input.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean).slice(0, 12)
+    : [];
+  return {
+    currency: validCurrency(raw.currency),
+    countries: strings(raw.countries),
+    products: strings(raw.products),
+    startDate: validDate(raw.startDate),
+    endDate: validDate(raw.endDate),
+    historical: raw.historical === true,
+  };
+}
+
+async function interpretRequest(request: string): Promise<QueryPlan | null> {
+  if (!process.env.OPENAI_API_KEY) return null;
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+      body: JSON.stringify({
+        model: "gpt-5-mini",
+        instructions: "Convert the user's database-only product-price question into JSON only. Do not answer the question and do not use web knowledge. Return exactly this shape: {\"currency\":\"usd|eur|chf|jpy|cny|aud|sgd|local\",\"countries\":[\"...\"],\"products\":[\"...\"],\"startDate\":\"YYYY-MM-DD or null\",\"endDate\":\"YYYY-MM-DD or null\",\"historical\":true|false}. Products must be only the requested actual product/category terms; never include generic words such as product, category, name, price, median, average, or comparison. Use timestamp_extract_utc dates. If a request says March to July 2026, return 2026-03-01 and 2026-07-31.",
+        input: request,
+      }),
+    });
+    if (!response.ok) return null;
+    const body = await response.json() as { output_text?: string };
+    const text = body.output_text?.trim().replace(/^```json\s*|\s*```$/g, "");
+    return text ? planFromJson(JSON.parse(text)) : null;
+  } catch {
+    return null;
+  }
 }
 
 function parseDateRange(request: string) {
@@ -53,18 +99,20 @@ function productText(row: PriceRow) {
   return `${normal(row.product_name)} ${normal(row.product_name_en)} ${normal(row.product_category)}`.trim();
 }
 
-function analyze(rows: PriceRow[], request: string) {
+function analyze(rows: PriceRow[], request: string, plan: QueryPlan | null) {
   const requestText = normal(request);
-  const currency = parseCurrency(request);
+  const currency = plan?.currency ?? parseCurrency(request);
   const priceField = priceFields[currency];
   const countries = [...new Set(rows.map((row) => string(row.country)).filter(Boolean))];
-  const requestedCountries = countries.filter((country) => requestText.includes(normal(country)));
+  const planCountries = new Set((plan?.countries ?? []).map(normal));
+  const requestedCountries = countries.filter((country) => planCountries.has(normal(country)) || requestText.includes(normal(country)));
   const countryFiltered = requestedCountries.length ? rows.filter((row) => requestedCountries.includes(string(row.country))) : rows;
   const terms = [...new Set(requestText.split(" ").filter((word) => word.length > 2 && !ignoredWords.has(word)))];
   const countryWords = new Set(requestedCountries.flatMap((country) => normal(country).split(" ")));
-  const productTerms = terms.filter((term) => !countryWords.has(term) && countryFiltered.some((row) => productText(row).includes(term)));
+  const plannedProducts = (plan?.products ?? []).map(normal).filter((term) => term && !ignoredWords.has(term));
+  const productTerms = (plannedProducts.length ? plannedProducts : terms).filter((term) => !countryWords.has(term) && countryFiltered.some((row) => productText(row).includes(term)));
   const productFiltered = productTerms.length ? countryFiltered.filter((row) => productTerms.some((term) => productText(row).includes(term))) : countryFiltered;
-  const dateRange = parseDateRange(request);
+  const dateRange = plan?.startDate && plan?.endDate ? { start: plan.startDate, end: plan.endDate } : parseDateRange(request);
   const dateFiltered = dateRange ? productFiltered.filter((row) => {
     const date = string(row.timestamp_extract_utc).slice(0, 10);
     return date >= dateRange.start && date <= dateRange.end;
@@ -76,7 +124,7 @@ function analyze(rows: PriceRow[], request: string) {
     return [{ row, unitPrice: price / quantity }];
   });
 
-  const groupHistorically = Boolean(dateRange && /\b(historical|history|trend|monthly|by month|over time)\b/i.test(request));
+  const groupHistorically = Boolean(dateRange && (plan?.historical || /\b(historical|history|trend|monthly|by month|over time)\b/i.test(request)));
   const aggregateMap = new Map<string, { product: string; country: string; scale: string; period?: string; values: number[] }>();
   for (const item of usable) {
     const scale = string(item.row.measurement_scale_standardized) || "standard unit";
@@ -122,7 +170,8 @@ export async function POST(request: Request) {
   const { data, error } = await supabase.from("detail_price").select("*");
   if (error) return NextResponse.json({ error: "I’m sorry, I’m unable to retrieve detail_price right now." }, { status: 500 });
 
-  const result = analyze((data ?? []) as PriceRow[], userRequest);
+  const plan = await interpretRequest(userRequest);
+  const result = analyze((data ?? []) as PriceRow[], userRequest, plan);
   const answer = deterministicAnswer(result);
   return NextResponse.json({ answer, recordsAnalyzed: result.usableRows, aggregates: result.aggregates, calculation: `${priceFields[result.currency]} ÷ quantity_standardized`, currencyLabel: currencyLabels[result.currency], matchedRows: result.selectedRows });
 }
