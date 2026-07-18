@@ -93,8 +93,9 @@ export async function POST(request: Request) {
   const supabase = createClient(cookieStore);
   const { data, error } = await supabase.rpc("run_price_agent_query", { query_text: plan.sql });
   if (error) {
+    const detail = [error.message, error.hint, error.details].filter((value): value is string => typeof value === "string" && value.length > 0).join(" — ");
     return NextResponse.json({
-      answer: "Sorry, I’m unable to run this read-only detail_price query right now. Please confirm that the run_price_agent_query function has been installed in Supabase.",
+      answer: `Sorry, I’m unable to run this read-only detail_price query right now. ${detail || "Supabase did not provide an error detail."}`,
       rows: [],
       sql: plan.sql,
     });
