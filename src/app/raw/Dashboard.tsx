@@ -139,10 +139,10 @@ useEffect(() => {
 <div className="min-h-screen bg-white text-black">
 
   <Navbar />       
-    <div className="p-6 grid grid-cols-4 grid-rows-2 gap-6">
+    <div className="data-page-layout">
 
       {/* LEFT TOP (filters) */}      
-      <div className="col-span-1 row-span-1 space-y-6">
+      <div className="data-page-filters">
         <h1 className="text-xl font-bold">Raw Product Price</h1>
 
 {/* CATEGORY MULTI */}
@@ -233,7 +233,7 @@ useEffect(() => {
 </div>
 
 {/*TABLE ON RIGHT SIDE */}
-<div className="col-span-3 bg-white p-4 rounded-xl overflow-auto border border-black">
+<div className="data-page-content overflow-x-auto rounded-xl border border-black bg-white p-4">
   <table className="w-full border border-black text-sm bg-white text-black">
     <thead className="bg-yellow-200 text-black">
       <tr>
@@ -308,4 +308,3 @@ useEffect(() => {
 </div>
 );
 }
-

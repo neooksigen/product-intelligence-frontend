@@ -143,7 +143,7 @@ export default function Dashboard({
     return (
       <>
         {/* Table */}
-        <div className="w-full overflow-x-auto border border-gray-400 bg-white shadow-sm">
+        <div className="inline-block max-w-full self-center overflow-x-auto border border-gray-400 bg-white shadow-sm">
           <table className="min-w-[520px] border-collapse text-left">
             <thead>
               <tr className="bg-gray-100">

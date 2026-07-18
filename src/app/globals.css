@@ -31,3 +31,51 @@ body {
 *::after {
   box-sizing: border-box;
 }
+
+/* Data pages: mobile is deliberately a top-to-bottom flow.  This avoids
+   chart panels being squeezed beside their filters on narrow screens. */
+.data-page-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.data-page-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.data-page-filters > h1 {
+  grid-column: 1 / -1;
+}
+
+.data-page-content,
+.data-page-chart {
+  min-width: 0;
+}
+
+/* Recharts creates its legend outside the SVG.  Hiding it at this breakpoint
+   preserves the chart area for the actual lines and bars. */
+@media (max-width: 767px) {
+  .recharts-legend-wrapper {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .data-page-layout {
+    grid-template-columns: minmax(220px, 1fr) minmax(0, 3fr);
+    padding: 1.5rem;
+  }
+
+  .data-page-filters {
+    display: block;
+  }
+
+  .data-page-filters > * + * {
+    margin-top: 1.5rem;
+  }
+}

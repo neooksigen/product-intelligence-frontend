@@ -129,9 +129,9 @@ useEffect(() => {
 <div className="min-h-screen bg-white text-black">
 
   <Navbar />     
-  <div className="p-6 grid grid-cols-4 gap-6">    
+  <div className="data-page-layout">    
     {/* LEFT */}  
-  <div className="col-span-1 space-y-6 bg-white text-black">
+  <div className="data-page-filters bg-white text-black">
   <h1 className="text-xl font-bold">Price Monitoring per Country</h1>
 
   {/* COUNTRY */}
@@ -218,7 +218,7 @@ useEffect(() => {
   </div>
 
 {/* BOTTOM (line chart) */}
-<div className="col-span-3 grid grid-cols-2 md:grid-cols-3 gap-4">
+<div className="data-page-content grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
   {!country && <p>Please select a country</p>}
 
   {Object.entries(groupedData)
