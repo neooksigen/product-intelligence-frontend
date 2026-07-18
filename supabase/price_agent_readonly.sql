@@ -2,11 +2,11 @@
 -- The application calls this function through Supabase RPC. It executes only one
 -- SELECT/WITH query and retains the caller's RLS/read permissions (SECURITY INVOKER).
 
-create or replace function public.run_price_agent_query(query_text text)
+create or replace function end_data.run_price_agent_query(query_text text)
 returns setof jsonb
 language plpgsql
 security invoker
-set search_path = public, pg_temp
+set search_path = end_data, pg_temp
 as $$
 declare
   query_sql text := btrim(query_text);
@@ -36,5 +36,5 @@ begin
 end;
 $$;
 
-revoke all on function public.run_price_agent_query(text) from public;
-grant execute on function public.run_price_agent_query(text) to anon, authenticated;
+revoke all on function end_data.run_price_agent_query(text) from public;
+grant execute on function end_data.run_price_agent_query(text) to anon, authenticated;
