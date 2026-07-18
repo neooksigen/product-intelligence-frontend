@@ -1,0 +1,40 @@
+-- Run this once in the Supabase SQL Editor, using a project owner/admin account.
+-- The application calls this function through Supabase RPC. It executes only one
+-- SELECT/WITH query and retains the caller's RLS/read permissions (SECURITY INVOKER).
+
+create or replace function public.run_price_agent_query(query_text text)
+returns setof jsonb
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $$
+declare
+  query_sql text := btrim(query_text);
+begin
+  if query_sql = '' or length(query_sql) > 12000 then
+    raise exception 'Invalid query length';
+  end if;
+
+  if query_sql !~* '^(select|with)\\s' then
+    raise exception 'Only SELECT or WITH queries are allowed';
+  end if;
+
+  if query_sql ~ ';' then
+    raise exception 'Multiple statements are not allowed';
+  end if;
+
+  if query_sql !~* '\\mdetail_price\\M' then
+    raise exception 'The query must read detail_price';
+  end if;
+
+  if query_sql ~* '\\m(insert|update|delete|merge|upsert|drop|alter|create|truncate|grant|revoke|copy|call|do|execute|vacuum|analyze|comment|security|set_config|pg_sleep|dblink|information_schema|pg_catalog|auth|storage)\\M' then
+    raise exception 'Only read-only detail_price SQL is allowed';
+  end if;
+
+  perform set_config('statement_timeout', '5000', true);
+  return query execute format('select to_jsonb(result_row) from (%s) result_row limit 500', query_sql);
+end;
+$$;
+
+revoke all on function public.run_price_agent_query(text) from public;
+grant execute on function public.run_price_agent_query(text) to anon, authenticated;
