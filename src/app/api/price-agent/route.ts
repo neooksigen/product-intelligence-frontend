@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 type PriceRow = Record<string, unknown>;
 type Currency = "local" | "usd" | "eur" | "chf" | "jpy" | "cny" | "aud" | "sgd";
-type Aggregate = { product: string; country: string; scale: string; recordCount: number; averageUnitPrice: number; medianUnitPrice: number; minimumUnitPrice: number; maximumUnitPrice: number };
+type Aggregate = { product: string; country: string; scale: string; period?: string; recordCount: number; averageUnitPrice: number; medianUnitPrice: number; minimumUnitPrice: number; maximumUnitPrice: number };
 
 const priceFields: Record<Currency, string> = { local: "price_local", usd: "price_usd", eur: "price_eur", chf: "price_chf", jpy: "price_jpy", cny: "price_cny", aud: "price_aud", sgd: "price_sgd" };
 const currencyLabels: Record<Currency, string> = { local: "local currency", usd: "USD", eur: "EUR", chf: "CHF", jpy: "JPY", cny: "CNY", aud: "AUD", sgd: "SGD" };
@@ -33,6 +33,18 @@ function parseCurrency(request: string): Currency {
 function parseDateRange(request: string) {
   const dates = request.match(/\b\d{4}-\d{2}-\d{2}\b/g) ?? [];
   if (dates.length >= 2 && dates[0] && dates[1]) return { start: dates[0], end: dates[1] };
+  const months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+  const monthPattern = months.join("|");
+  const range = new RegExp(`\\b(${monthPattern})\\s*(?:to|until|through|-)\\s*(${monthPattern})\\s*(20\\d{2})\\b`, "i").exec(request);
+  if (range?.[1] && range[2] && range[3]) {
+    const startMonth = months.indexOf(range[1].toLowerCase());
+    const endMonth = months.indexOf(range[2].toLowerCase());
+    const year = Number(range[3]);
+    if (startMonth >= 0 && endMonth >= startMonth) {
+      const endDay = new Date(Date.UTC(year, endMonth + 1, 0)).getUTCDate();
+      return { start: `${year}-${String(startMonth + 1).padStart(2, "0")}-01`, end: `${year}-${String(endMonth + 1).padStart(2, "0")}-${endDay}` };
+    }
+  }
   const year = request.match(/\b(20\d{2})\b/)?.[1];
   return year ? { start: `${year}-01-01`, end: `${year}-12-31` } : null;
 }
@@ -49,7 +61,8 @@ function analyze(rows: PriceRow[], request: string) {
   const requestedCountries = countries.filter((country) => requestText.includes(normal(country)));
   const countryFiltered = requestedCountries.length ? rows.filter((row) => requestedCountries.includes(string(row.country))) : rows;
   const terms = [...new Set(requestText.split(" ").filter((word) => word.length > 2 && !ignoredWords.has(word)))];
-  const productTerms = terms.filter((term) => countryFiltered.some((row) => productText(row).includes(term)));
+  const countryWords = new Set(requestedCountries.flatMap((country) => normal(country).split(" ")));
+  const productTerms = terms.filter((term) => !countryWords.has(term) && countryFiltered.some((row) => productText(row).includes(term)));
   const productFiltered = productTerms.length ? countryFiltered.filter((row) => productTerms.some((term) => productText(row).includes(term))) : countryFiltered;
   const dateRange = parseDateRange(request);
   const dateFiltered = dateRange ? productFiltered.filter((row) => {
@@ -63,19 +76,22 @@ function analyze(rows: PriceRow[], request: string) {
     return [{ row, unitPrice: price / quantity }];
   });
 
-  const aggregateMap = new Map<string, { product: string; country: string; scale: string; values: number[] }>();
+  const groupHistorically = Boolean(dateRange && /\b(historical|history|trend|monthly|by month|over time)\b/i.test(request));
+  const aggregateMap = new Map<string, { product: string; country: string; scale: string; period?: string; values: number[] }>();
   for (const item of usable) {
     const scale = string(item.row.measurement_scale_standardized) || "standard unit";
     const matchedTerms = productTerms.filter((term) => productText(item.row).includes(term));
     const labels = matchedTerms.length ? matchedTerms : [string(item.row.product_category) || string(item.row.product_name_en) || string(item.row.product_name) || "matching products"];
     for (const product of labels) {
-      const key = [product, string(item.row.country), scale].join("|");
-      const group = aggregateMap.get(key) ?? { product, country: string(item.row.country), scale, values: [] };
+      const period = groupHistorically ? string(item.row.timestamp_extract_utc).slice(0, 7) : undefined;
+      const key = [period ?? "", product, string(item.row.country), scale].join("|");
+      const group = aggregateMap.get(key) ?? { product, country: string(item.row.country), scale, period, values: [] };
       group.values.push(item.unitPrice);
       aggregateMap.set(key, group);
     }
   }
   const aggregates: Aggregate[] = [...aggregateMap.values()].map((group) => ({
+    period: group.period,
     product: group.product,
     country: group.country,
     scale: group.scale,
@@ -84,45 +100,16 @@ function analyze(rows: PriceRow[], request: string) {
     medianUnitPrice: round(median(group.values)),
     minimumUnitPrice: round(Math.min(...group.values)),
     maximumUnitPrice: round(Math.max(...group.values)),
-  })).sort((a, b) => a.product.localeCompare(b.product) || a.country.localeCompare(b.country) || a.scale.localeCompare(b.scale));
-
-  const daily = new Map<string, number[]>();
-  for (const item of usable) {
-    const date = string(item.row.timestamp_extract_utc).slice(0, 10);
-    if (date) daily.set(date, [...(daily.get(date) ?? []), item.unitPrice]);
-  }
-  const chart = [...daily.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, values]) => ({ date, averagePrice: round(mean(values)) }));
-  return { currency, requestedCountries, productTerms, dateRange, selectedRows: dateFiltered.length, usableRows: usable.length, aggregates, chart };
+  })).sort((a, b) => (a.period ?? "").localeCompare(b.period ?? "") || a.product.localeCompare(b.product) || a.country.localeCompare(b.country) || a.scale.localeCompare(b.scale));
+  return { currency, requestedCountries, productTerms, dateRange, selectedRows: dateFiltered.length, usableRows: usable.length, aggregates };
 }
 
 function deterministicAnswer(result: ReturnType<typeof analyze>) {
   if (!result.aggregates.length) return apology;
   const currency = currencyLabels[result.currency];
   const heading = `Database-only unit-price analysis (${currency}; raw price ÷ quantity_standardized)`;
-  const lines = result.aggregates.map((item) => `• ${item.product} — ${item.country}, per ${item.scale}: average ${item.averageUnitPrice.toLocaleString()} ${currency}; median ${item.medianUnitPrice.toLocaleString()} ${currency} (${item.recordCount} records; range ${item.minimumUnitPrice.toLocaleString()}–${item.maximumUnitPrice.toLocaleString()})`);
-  const lowest = [...result.aggregates].sort((a, b) => a.averageUnitPrice - b.averageUnitPrice)[0];
-  const period = result.dateRange ? ` Filtered by timestamp_extract_utc from ${result.dateRange.start} to ${result.dateRange.end}.` : " Historical dates, when charted, use timestamp_extract_utc.";
-  return `${heading}\n\n${lines.join("\n")}\n\nRecommendation: Within these matching database records, ${lowest.product} in ${lowest.country} (${lowest.scale}) has the lowest average unit price at ${lowest.averageUnitPrice.toLocaleString()} ${currency}.${period}`;
-}
-
-async function optionalExplanation(request: string, result: ReturnType<typeof analyze>, fallback: string) {
-  if (!process.env.OPENAI_API_KEY || !result.aggregates.length) return fallback;
-  try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-      body: JSON.stringify({
-        model: "gpt-5",
-        instructions: `You are Product Price Master Agent. Use only the supplied, pre-calculated detail_price result. Never browse the web or refer to any source other than detail_price. Every number is already price divided by quantity_standardized. Do not change, recalculate, omit, or invent numbers. Historical dates use timestamp_extract_utc. Reply concisely with an analysis and a labelled Recommendation.`,
-        input: `User request: ${request}\n\nCalculated database result:\n${fallback}`,
-      }),
-    });
-    if (!response.ok) return fallback;
-    const body = await response.json() as { output_text?: string };
-    return body.output_text?.trim() || fallback;
-  } catch {
-    return fallback;
-  }
+  const period = result.dateRange ? ` Filtered by timestamp_extract_utc from ${result.dateRange.start} to ${result.dateRange.end}.` : "";
+  return `${heading}. ${result.aggregates.length} table row(s) matched.${period}`;
 }
 
 export async function POST(request: Request) {
@@ -136,7 +123,6 @@ export async function POST(request: Request) {
   if (error) return NextResponse.json({ error: "I’m sorry, I’m unable to retrieve detail_price right now." }, { status: 500 });
 
   const result = analyze((data ?? []) as PriceRow[], userRequest);
-  const fallback = deterministicAnswer(result);
-  const answer = await optionalExplanation(userRequest, result, fallback);
-  return NextResponse.json({ answer, chart: result.chart, recordsAnalyzed: result.usableRows, chartLabel: `Average ${currencyLabels[result.currency]} price per standard unit`, aggregates: result.aggregates, calculation: `${priceFields[result.currency]} ÷ quantity_standardized`, matchedRows: result.selectedRows });
+  const answer = deterministicAnswer(result);
+  return NextResponse.json({ answer, recordsAnalyzed: result.usableRows, aggregates: result.aggregates, calculation: `${priceFields[result.currency]} ÷ quantity_standardized`, currencyLabel: currencyLabels[result.currency], matchedRows: result.selectedRows });
 }
