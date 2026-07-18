@@ -29,7 +29,7 @@ function MetricCard({
 }) {
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="flex h-[110px] w-[300px] items-center justify-center rounded-full border border-gray-500 bg-white px-6 text-center shadow-sm">
+      <div className="flex h-[110px] w-full max-w-[300px] items-center justify-center rounded-full border border-gray-500 bg-white px-6 text-center shadow-sm">
         <div>
           <p className="text-mg font-small text-gray-700">{title}</p>
           <p className="mt-2 text-2xl font-semibold text-gray-800">
@@ -53,7 +53,7 @@ function ExploreButton({
   return (
     <Link
       href={href}
-      className="flex h-[70px] w-[170px] items-center justify-center border border-gray-500 bg-white text-center text-sm font-medium text-gray-800 transition hover:bg-gray-100"
+      className="flex h-[70px] w-full max-w-[260px] items-center justify-center border border-gray-500 bg-white px-4 text-center text-sm font-medium text-gray-800 transition hover:bg-gray-100 sm:w-[170px]"
     >
       {title}
     </Link>
@@ -69,28 +69,28 @@ export default function Dashboard({
   lastUpdate,
 }: DashboardProps) {
   return (
-    <div className="min-h-screen bg-[#efefef] px-6 py-8 text-gray-700">
+    <div className="min-h-screen bg-[#efefef] px-4 py-5 text-gray-700 sm:px-6 sm:py-8">
       <div className="mx-auto max-w-7xl">
 
   <Navbar />
 
         {/* Welcome Section */}
-        <div className="mt-14 text-center">
-          <h2 className="text-5xl font-light text-gray-700">
+        <div className="mt-10 text-center sm:mt-14">
+          <h2 className="text-4xl font-light text-gray-700 sm:text-5xl">
             Welcome to Maintelyd
           </h2>
 
-          <p className="mt-10 text-3xl font-light text-gray-700">
+          <p className="mt-7 text-xl font-light leading-relaxed text-gray-700 sm:mt-10 sm:text-3xl">
             We are an early phase business for reliable global data intelligence and analytics, powered with AI.
           </p>
 
-          <p className="mt-8 text-3xl font-light text-gray-700">
+          <p className="mt-7 text-xl font-light leading-relaxed text-gray-700 sm:mt-8 sm:text-3xl">
             Our current 1st data product is World Product Price
           </p>
         </div>
 
         {/* Metrics */}
-        <div className="mt-20 grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-12 grid grid-cols-1 justify-items-center gap-10 md:mt-20 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard
             title="Product prices discovered since March 2026"
             value={totalCollected}
@@ -117,10 +117,10 @@ export default function Dashboard({
         </div>
 
 {/* Monitoring Table */}
-<div className="mt-20 flex flex-col items-center">
+<div className="mt-14 flex flex-col items-center sm:mt-20">
 
   {/* Title */}
-  <h3 className="mb-6 text-3xl font-light text-gray-700">
+  <h3 className="mb-6 text-center text-2xl font-light text-gray-700 sm:text-3xl">
     Last 1 Month Product Price Discovery Result
   </h3>
 
@@ -143,7 +143,7 @@ export default function Dashboard({
     return (
       <>
         {/* Table */}
-        <div className="overflow-hidden border border-gray-400 bg-white shadow-sm">
+        <div className="w-full overflow-x-auto border border-gray-400 bg-white shadow-sm">
           <table className="min-w-[520px] border-collapse text-left">
             <thead>
               <tr className="bg-gray-100">
@@ -188,7 +188,7 @@ export default function Dashboard({
         </div>
 
         {/* Pagination */}
-        <div className="mt-8 flex items-center gap-2">
+        <div className="mt-8 flex max-w-full items-center gap-2 overflow-x-auto pb-2">
           {Array.from({ length: totalPages }).map((_, index) => {
             const page = index + 1;
 
@@ -225,8 +225,8 @@ export default function Dashboard({
         </div>
 
         {/* Explore */}
-        <div className="mt-20 text-center">
-          <h2 className="text-5xl font-light text-gray-700">
+        <div className="mt-14 text-center sm:mt-20">
+          <h2 className="text-4xl font-light text-gray-700 sm:text-5xl">
             Start Explore !
           </h2>
 
