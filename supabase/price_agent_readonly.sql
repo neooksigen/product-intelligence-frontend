@@ -15,7 +15,7 @@ begin
     raise exception 'Invalid query length';
   end if;
 
-  if query_sql !~* '^(select|with)[[:space:]]' then
+  if lower(ltrim(query_sql)) not like 'select%' and lower(ltrim(query_sql)) not like 'with%' then
     raise exception 'Only SELECT or WITH queries are allowed';
   end if;
 
