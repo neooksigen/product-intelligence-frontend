@@ -5,6 +5,10 @@ import { createClient } from "@/utils/supabase/server";
 export const dynamic = "force-dynamic";
 
 type SqlPlan = { sql: string; title?: string };
+type ResponsesApiBody = {
+  output_text?: string;
+  output?: Array<{ content?: Array<{ type?: string; text?: string }> }>;
+};
 
 const apology = "Sorry, I’m unable to fulfill this request from the detail_price database.";
 const dangerousSql = /\b(insert|update|delete|merge|upsert|drop|alter|create|truncate|grant|revoke|copy|call|do|execute|vacuum|analyze|comment|security|set_config|pg_sleep|dblink|information_schema|pg_catalog|auth\.|storage\.)\b/i;
@@ -22,6 +26,16 @@ function isAllowedSql(sql: string) {
   if (!/^(select|with)\b/i.test(sql) || dangerousSql.test(sql)) return false;
   if (sql.includes(";") || !/\bdetail_price\b/i.test(sql)) return false;
   return true;
+}
+
+function responseText(body: ResponsesApiBody) {
+  if (body.output_text?.trim()) return body.output_text.trim();
+  return body.output
+    ?.flatMap((item) => item.content ?? [])
+    .filter((item) => item.type === "output_text" && typeof item.text === "string")
+    .map((item) => item.text)
+    .join("\n")
+    .trim() ?? "";
 }
 
 async function createSqlPlan(question: string): Promise<SqlPlan | null> {
@@ -53,8 +67,8 @@ Rules:
       }),
     });
     if (!response.ok) return null;
-    const body = await response.json() as { output_text?: string };
-    const text = body.output_text?.trim().replace(/^```json\s*|\s*```$/g, "");
+    const body = await response.json() as ResponsesApiBody;
+    const text = responseText(body).replace(/^```json\s*|\s*```$/g, "");
     const plan = text ? planFromJson(JSON.parse(text)) : null;
     return plan && isAllowedSql(plan.sql) ? plan : null;
   } catch {
