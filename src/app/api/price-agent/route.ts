@@ -78,7 +78,14 @@ Rules:
 
 function normaliseRows(value: unknown) {
   if (!Array.isArray(value)) return [] as Record<string, unknown>[];
-  return value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object").slice(0, 500);
+  return value
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+    .slice(0, 500)
+    .map((item) => {
+      const entries = Object.entries(item);
+      const rpcValue = entries.length === 1 ? entries[0]?.[1] : undefined;
+      return rpcValue && typeof rpcValue === "object" && !Array.isArray(rpcValue) ? rpcValue as Record<string, unknown> : item;
+    });
 }
 
 export async function POST(request: Request) {
@@ -91,10 +98,11 @@ export async function POST(request: Request) {
 
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const { data, error } = await supabase.rpc("run_price_agent_query", { query_text: plan.sql });
+  const { data, error } = await supabase.schema("end_data").rpc("run_price_agent_query", { query_text: plan.sql });
   if (error) {
+    const detail = [error.message, error.hint, error.details].filter((value): value is string => typeof value === "string" && value.length > 0).join(" — ");
     return NextResponse.json({
-      answer: "Sorry, I’m unable to run this read-only detail_price query right now. Please confirm that the run_price_agent_query function has been installed in Supabase.",
+      answer: `Sorry, I’m unable to run this read-only detail_price query right now. ${detail || "Supabase did not provide an error detail."}`,
       rows: [],
       sql: plan.sql,
     });
