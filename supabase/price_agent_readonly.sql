@@ -23,7 +23,7 @@ begin
     raise exception 'Multiple statements are not allowed';
   end if;
 
-  if query_sql !~* '\mdetail_price\M' then
+  if position('detail_price' in lower(query_sql)) = 0 then
     raise exception 'The query must read detail_price';
   end if;
 
