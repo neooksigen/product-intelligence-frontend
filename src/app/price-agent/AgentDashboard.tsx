@@ -32,30 +32,24 @@ function ResultsTable({ result }: { result: Result }) {
 
   return (
     <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white">
-      <table className="min-w-[760px] w-full text-left text-sm">
+      <table className="min-w-[620px] w-full text-left text-sm">
         <thead className="border-b border-slate-200 bg-slate-50 text-slate-600">
           <tr>
-            {hasPeriods && <th className="p-3">Period</th>}
+            {hasPeriods && <th className="p-3">Month</th>}
             <th className="p-3">Product</th>
             <th className="p-3">Country</th>
-            <th className="p-3">Scale</th>
-            <th className="p-3">Average ({result.currencyLabel})</th>
-            <th className="p-3">Median ({result.currencyLabel})</th>
-            <th className="p-3">Range</th>
-            <th className="p-3">Records</th>
+            <th className="p-3">Measurement scale</th>
+            <th className="p-3">Median price ({result.currencyLabel})</th>
           </tr>
         </thead>
         <tbody>
           {result.aggregates.map((item) => (
             <tr key={`${item.period ?? "all"}-${item.product}-${item.country}-${item.scale}`} className="border-b border-slate-100 last:border-0">
-              {hasPeriods && <td className="p-3">{item.period ?? "All dates"}</td>}
+              {hasPeriods && <td className="p-3">{item.period ?? "All months"}</td>}
               <td className="p-3 font-medium">{item.product}</td>
               <td className="p-3">{item.country}</td>
               <td className="p-3">{item.scale}</td>
-              <td className="p-3">{item.averageUnitPrice.toLocaleString()}</td>
               <td className="p-3 font-semibold">{item.medianUnitPrice.toLocaleString()}</td>
-              <td className="p-3">{item.minimumUnitPrice.toLocaleString()} – {item.maximumUnitPrice.toLocaleString()}</td>
-              <td className="p-3">{item.recordCount.toLocaleString()}</td>
             </tr>
           ))}
         </tbody>
