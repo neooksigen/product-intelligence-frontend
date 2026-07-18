@@ -53,6 +53,19 @@ const COLORS = [
   "#d884a6","#a6d884","#ff8c42","#6a4c93","#1982c4"
 ]; //added here 30 april 2026 15:47
 
+function useDesktopLegend() {
+  const [showLegend, setShowLegend] = useState(true);
+
+  useEffect(() => {
+    const updateLegend = () => setShowLegend(window.innerWidth >= 640);
+    updateLegend();
+    window.addEventListener("resize", updateLegend);
+    return () => window.removeEventListener("resize", updateLegend);
+  }, []);
+
+  return showLegend;
+}
+
 // ✅ Dashboard
 export default function Dashboard({ data }: { data: DailyPrice[] }) {
   const [filtered, setFiltered] = useState<DailyPrice[]>(data || []);
@@ -121,9 +134,9 @@ if (selectedMeasurementScale) {
 <div className="min-h-screen bg-white text-black">
 
   <Navbar />     
-    <div className="p-6 grid grid-cols-4 grid-rows-2 gap-6">
+    <div className="data-page-layout">
       {/* LEFT TOP (filters) */}      
-      <div className="col-span-1 row-span-1 space-y-6 bg-white text-black">
+      <div className="data-page-filters bg-white text-black">
         <h1 className="text-xl font-bold">Daily Price Comparison</h1>
 
         {/* CATEGORY */}
@@ -229,7 +242,7 @@ if (selectedMeasurementScale) {
       </div>
 
       {/* RIGHT TOP (line chart) */}
-      <div className="col-span-3 row-span-1 bg-white border border-black p-4 rounded-2xl">
+      <div className="data-page-chart bg-white border border-black p-4 rounded-2xl">
         <h2 className="mb-4 text-xl font-semibold text-black">
   Daily Price
 </h2>
@@ -238,10 +251,8 @@ if (selectedMeasurementScale) {
       </div>
 
       {/* LEFT BOTTOM (empty) */} 
-      <div className="col-span-1 row-span-1"></div>
-
       {/* RIGHT BOTTOM (stacked bar) */}
-      <div className="col-span-3 row-span-1 bg-white border border-black p-4 rounded-2xl">
+      <div className="data-page-chart bg-white border border-black p-4 rounded-2xl lg:col-start-2">
         <h2 className="mb-4 text-xl font-semibold text-black">
   Daily Product Count
 </h2>
@@ -264,6 +275,7 @@ function MultiLineChart({
   data: DailyPrice[];
   metric: MetricKey;
 }) {  
+  const showLegend = useDesktopLegend();
     
   const transformed = useMemo(() => {
     const map: Record<string, Record<string, number>> = {};
@@ -303,7 +315,7 @@ function MultiLineChart({
         <XAxis dataKey="date" tick={{ fill: "black" }} />
         <YAxis tick={{ fill: "black" }} />
         <Tooltip />
-        <Legend />
+        {showLegend && <Legend wrapperStyle={{ fontSize: 11 }} />}
 
     {transformed.countries.map((c, index) => (
         <Line
@@ -326,6 +338,7 @@ function MultiLineChart({
 // 🟩 STACKED BAR CHART
 //
 function StackedBarChart({ data }: { data: DailyPrice[] }) {
+  const showLegend = useDesktopLegend();
   const transformed = useMemo(() => {
     const map: Record<string, Record<string, number>> = {};
     const countries = new Set<string>();
@@ -359,7 +372,7 @@ function StackedBarChart({ data }: { data: DailyPrice[] }) {
         <XAxis dataKey="date" tick={{ fill: "black" }} />
         <YAxis tick={{ fill: "black" }} />
         <Tooltip />
-        <Legend />
+        {showLegend && <Legend wrapperStyle={{ fontSize: 11 }} />}
 
         {transformed.countries.map((c, index) => (
           <Bar
