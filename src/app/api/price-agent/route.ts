@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 type PriceRow = Record<string, unknown>;
 type Currency = "local" | "usd" | "eur" | "chf" | "jpy" | "cny" | "aud" | "sgd";
-type Aggregate = { product: string; country: string; scale: string; recordCount: number; averageUnitPrice: number; minimumUnitPrice: number; maximumUnitPrice: number };
+type Aggregate = { product: string; country: string; scale: string; recordCount: number; averageUnitPrice: number; medianUnitPrice: number; minimumUnitPrice: number; maximumUnitPrice: number };
 
 const priceFields: Record<Currency, string> = { local: "price_local", usd: "price_usd", eur: "price_eur", chf: "price_chf", jpy: "price_jpy", cny: "price_cny", aud: "price_aud", sgd: "price_sgd" };
 const currencyLabels: Record<Currency, string> = { local: "local currency", usd: "USD", eur: "EUR", chf: "CHF", jpy: "JPY", cny: "CNY", aud: "AUD", sgd: "SGD" };
@@ -17,6 +17,11 @@ function string(value: unknown) { return typeof value === "string" ? value : "";
 function numeric(value: unknown) { const number = Number(value); return Number.isFinite(number) ? number : null; }
 function normal(value: unknown) { return string(value).toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim(); }
 function mean(values: number[]) { return values.reduce((sum, value) => sum + value, 0) / values.length; }
+function median(values: number[]) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
+}
 function round(value: number) { return Number(value.toFixed(4)); }
 
 function parseCurrency(request: string): Currency {
@@ -76,6 +81,7 @@ function analyze(rows: PriceRow[], request: string) {
     scale: group.scale,
     recordCount: group.values.length,
     averageUnitPrice: round(mean(group.values)),
+    medianUnitPrice: round(median(group.values)),
     minimumUnitPrice: round(Math.min(...group.values)),
     maximumUnitPrice: round(Math.max(...group.values)),
   })).sort((a, b) => a.product.localeCompare(b.product) || a.country.localeCompare(b.country) || a.scale.localeCompare(b.scale));
@@ -93,7 +99,7 @@ function deterministicAnswer(result: ReturnType<typeof analyze>) {
   if (!result.aggregates.length) return apology;
   const currency = currencyLabels[result.currency];
   const heading = `Database-only unit-price analysis (${currency}; raw price ÷ quantity_standardized)`;
-  const lines = result.aggregates.map((item) => `• ${item.product} — ${item.country}, per ${item.scale}: average ${item.averageUnitPrice.toLocaleString()} ${currency} (${item.recordCount} records; range ${item.minimumUnitPrice.toLocaleString()}–${item.maximumUnitPrice.toLocaleString()})`);
+  const lines = result.aggregates.map((item) => `• ${item.product} — ${item.country}, per ${item.scale}: average ${item.averageUnitPrice.toLocaleString()} ${currency}; median ${item.medianUnitPrice.toLocaleString()} ${currency} (${item.recordCount} records; range ${item.minimumUnitPrice.toLocaleString()}–${item.maximumUnitPrice.toLocaleString()})`);
   const lowest = [...result.aggregates].sort((a, b) => a.averageUnitPrice - b.averageUnitPrice)[0];
   const period = result.dateRange ? ` Filtered by timestamp_extract_utc from ${result.dateRange.start} to ${result.dateRange.end}.` : " Historical dates, when charted, use timestamp_extract_utc.";
   return `${heading}\n\n${lines.join("\n")}\n\nRecommendation: Within these matching database records, ${lowest.product} in ${lowest.country} (${lowest.scale}) has the lowest average unit price at ${lowest.averageUnitPrice.toLocaleString()} ${currency}.${period}`;
