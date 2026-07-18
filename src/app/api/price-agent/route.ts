@@ -11,7 +11,7 @@ type QueryPlan = { currency?: Currency; countries?: string[]; products?: string[
 
 const priceFields: Record<Currency, string> = { local: "price_local", usd: "price_usd", eur: "price_eur", chf: "price_chf", jpy: "price_jpy", cny: "price_cny", aud: "price_aud", sgd: "price_sgd" };
 const currencyLabels: Record<Currency, string> = { local: "local currency", usd: "USD", eur: "EUR", chf: "CHF", jpy: "JPY", cny: "CNY", aud: "AUD", sgd: "SGD" };
-const ignoredWords = new Set(["a", "an", "and", "are", "average", "by", "can", "category", "comparison", "compare", "currency", "for", "from", "give", "hi", "historical", "history", "how", "i", "in", "is", "me", "median", "name", "of", "on", "per", "please", "price", "prices", "product", "products", "recommend", "show", "the", "to", "unit", "what", "with", "year", "usd", "eur", "chf", "jpy", "cny", "aud", "sgd", "local"]);
+const ignoredWords = new Set(["a", "an", "and", "are", "average", "by", "can", "category", "column", "columns", "comparison", "compare", "country", "currency", "for", "from", "give", "hi", "historical", "history", "how", "i", "in", "into", "is", "kilogram", "kg", "liter", "local", "me", "measurement", "median", "month", "monthly", "name", "of", "on", "per", "please", "price", "prices", "product", "products", "provide", "recommend", "scale", "show", "table", "the", "to", "unit", "what", "with", "year", "usd", "eur", "chf", "jpy", "cny", "aud", "sgd"]);
 const apology = "Sorry, I’m unable to fulfill this request from the detail_price database.";
 
 function string(value: unknown) { return typeof value === "string" ? value : ""; }
@@ -63,7 +63,7 @@ async function interpretRequest(request: string): Promise<QueryPlan | null> {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
       body: JSON.stringify({
         model: "gpt-5-mini",
-        instructions: "Convert the user's database-only product-price question into JSON only. Do not answer the question and do not use web knowledge. Return exactly this shape: {\"currency\":\"usd|eur|chf|jpy|cny|aud|sgd|local\",\"countries\":[\"...\"],\"products\":[\"...\"],\"startDate\":\"YYYY-MM-DD or null\",\"endDate\":\"YYYY-MM-DD or null\",\"historical\":true|false}. Products must be only the requested actual product/category terms; never include generic words such as product, category, name, price, median, average, or comparison. Use timestamp_extract_utc dates. If a request says March to July 2026, return 2026-03-01 and 2026-07-31.",
+        instructions: "Convert the user's database-only product-price question into JSON only. Do not answer the question and do not use web knowledge. Return exactly this shape: {\"currency\":\"usd|eur|chf|jpy|cny|aud|sgd|local\",\"countries\":[\"...\"],\"products\":[\"...\"],\"startDate\":\"YYYY-MM-DD or null\",\"endDate\":\"YYYY-MM-DD or null\",\"historical\":true|false}. Products must contain only requested real products/categories, for example rice, beef, egg, fruit. Never include instructions, column names, units, country names, or generic words such as product, category, name, price, median, average, comparison, month, table, column, country, measurement, or scale. Use timestamp_extract_utc dates. If a request says March to July 2026, return 2026-03-01 and 2026-07-31. Set historical true when the request says historical, per month, monthly, trend, or over time.",
         input: request,
       }),
     });
@@ -110,7 +110,9 @@ function analyze(rows: PriceRow[], request: string, plan: QueryPlan | null) {
   const terms = [...new Set(requestText.split(" ").filter((word) => word.length > 2 && !ignoredWords.has(word)))];
   const countryWords = new Set(requestedCountries.flatMap((country) => normal(country).split(" ")));
   const plannedProducts = (plan?.products ?? []).map(normal).filter((term) => term && !ignoredWords.has(term));
-  const productTerms = (plannedProducts.length ? plannedProducts : terms).filter((term) => !countryWords.has(term) && countryFiltered.some((row) => productText(row).includes(term)));
+  const productCandidates = plannedProducts.length ? plannedProducts : terms;
+  const productTerms = productCandidates.filter((term) => !countryWords.has(term) && countryFiltered.some((row) => productText(row).includes(term)));
+  if (!productTerms.length) return { currency, requestedCountries, productTerms, dateRange: null, selectedRows: 0, usableRows: 0, aggregates: [] };
   const productFiltered = productTerms.length ? countryFiltered.filter((row) => productTerms.some((term) => productText(row).includes(term))) : countryFiltered;
   const dateRange = plan?.startDate && plan?.endDate ? { start: plan.startDate, end: plan.endDate } : parseDateRange(request);
   const dateFiltered = dateRange ? productFiltered.filter((row) => {
@@ -124,12 +126,12 @@ function analyze(rows: PriceRow[], request: string, plan: QueryPlan | null) {
     return [{ row, unitPrice: price / quantity }];
   });
 
-  const groupHistorically = Boolean(dateRange && (plan?.historical || /\b(historical|history|trend|monthly|by month|over time)\b/i.test(request)));
+  const groupHistorically = Boolean(plan?.historical || /\b(historical|history|trend|monthly|by month|per month|over time)\b/i.test(request));
   const aggregateMap = new Map<string, { product: string; country: string; scale: string; period?: string; values: number[] }>();
   for (const item of usable) {
     const scale = string(item.row.measurement_scale_standardized) || "standard unit";
     const matchedTerms = productTerms.filter((term) => productText(item.row).includes(term));
-    const labels = matchedTerms.length ? matchedTerms : [string(item.row.product_category) || string(item.row.product_name_en) || string(item.row.product_name) || "matching products"];
+    const labels = matchedTerms;
     for (const product of labels) {
       const period = groupHistorically ? string(item.row.timestamp_extract_utc).slice(0, 7) : undefined;
       const key = [period ?? "", product, string(item.row.country), scale].join("|");
