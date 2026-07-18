@@ -85,9 +85,16 @@ export default function Navbar() {
 
           <Link
             href="/raw"
-            className="block px-5 py-4 text-sm text-gray-700 hover:bg-gray-100"
+            className="block border-b border-gray-200 px-5 py-4 text-sm text-gray-700 hover:bg-gray-100"
           >
             Raw Data Price
+          </Link>
+
+          <Link
+            href="/price-agent"
+            className="block px-5 py-4 text-sm text-gray-700 hover:bg-gray-100"
+          >
+            Product Price Master Agent
           </Link>
         </div>
       </div>
