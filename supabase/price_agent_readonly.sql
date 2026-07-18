@@ -2,11 +2,11 @@
 -- The application calls this function through Supabase RPC. It executes only one
 -- SELECT/WITH query and retains the caller's RLS/read permissions (SECURITY INVOKER).
 
-create or replace function public.run_price_agent_query(query_text text)
+create or replace function end_data.run_price_agent_query(query_text text)
 returns setof jsonb
 language plpgsql
 security invoker
-set search_path = public, pg_temp
+set search_path = end_data, pg_temp
 as $$
 declare
   query_sql text := btrim(query_text);
@@ -15,7 +15,7 @@ begin
     raise exception 'Invalid query length';
   end if;
 
-  if query_sql !~* '^(select|with)\\s' then
+  if query_sql !~* '^(select|with)[[:space:]]' then
     raise exception 'Only SELECT or WITH queries are allowed';
   end if;
 
@@ -23,11 +23,11 @@ begin
     raise exception 'Multiple statements are not allowed';
   end if;
 
-  if query_sql !~* '\\mdetail_price\\M' then
+  if query_sql !~* '\mdetail_price\M' then
     raise exception 'The query must read detail_price';
   end if;
 
-  if query_sql ~* '\\m(insert|update|delete|merge|upsert|drop|alter|create|truncate|grant|revoke|copy|call|do|execute|vacuum|analyze|comment|security|set_config|pg_sleep|dblink|information_schema|pg_catalog|auth|storage)\\M' then
+  if query_sql ~* '\m(insert|update|delete|merge|upsert|drop|alter|create|truncate|grant|revoke|copy|call|do|execute|vacuum|analyze|comment|security|set_config|pg_sleep|dblink|information_schema|pg_catalog|auth|storage)\M' then
     raise exception 'Only read-only detail_price SQL is allowed';
   end if;
 
@@ -36,5 +36,6 @@ begin
 end;
 $$;
 
-revoke all on function public.run_price_agent_query(text) from public;
-grant execute on function public.run_price_agent_query(text) to anon, authenticated;
+revoke all on function end_data.run_price_agent_query(text) from public;
+grant execute on function end_data.run_price_agent_query(text) to anon, authenticated;
+notify pgrst, 'reload schema';
