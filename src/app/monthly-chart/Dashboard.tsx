@@ -63,11 +63,11 @@ function CompactTooltip({ active, label, payload }: ChartTooltipProps) {
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="w-[min(340px,calc(100vw-48px))] rounded border border-slate-200 bg-white/95 px-2 py-1.5 text-[10px] leading-4 shadow-sm">
+    <div className="w-[min(340px,calc(100vw-48px))] rounded border border-slate-200 bg-white/95 px-2 py-1.5 text-[10px] leading-4 shadow-sm sm:w-[480px]">
       <p className="mb-1 text-[11px] font-semibold text-slate-800">{label}</p>
-      <div className="grid grid-cols-3 gap-x-2 gap-y-0.5 sm:grid-cols-4">
+      <div className="grid grid-cols-3 gap-x-2 gap-y-0.5 sm:grid-cols-3">
         {payload.map((item) => (
-          <p key={item.name} className="min-w-0 truncate" style={{ color: item.color }} title={`${item.name}: ${item.value}`}>
+          <p key={item.name} className="min-w-0 truncate sm:overflow-visible sm:text-clip sm:whitespace-nowrap" style={{ color: item.color }} title={`${item.name}: ${item.value}`}>
             {item.name}: {typeof item.value === "number" ? item.value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : item.value}
           </p>
         ))}
