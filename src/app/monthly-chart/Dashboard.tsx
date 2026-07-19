@@ -53,6 +53,29 @@ const COLORS = [
   "#d884a6","#a6d884","#ff8c42","#6a4c93","#1982c4"
 ]; //added here 30 april 2026 15:47
 
+type ChartTooltipProps = {
+  active?: boolean;
+  label?: string | number;
+  payload?: Array<{ name?: string; value?: string | number; color?: string }>;
+};
+
+function CompactTooltip({ active, label, payload }: ChartTooltipProps) {
+  if (!active || !payload?.length) return null;
+
+  return (
+    <div className="w-[min(340px,calc(100vw-48px))] rounded border border-slate-200 bg-white/95 px-2 py-1.5 text-[10px] leading-4 shadow-sm">
+      <p className="mb-1 text-[11px] font-semibold text-slate-800">{label}</p>
+      <div className="grid grid-cols-3 gap-x-2 gap-y-0.5 sm:grid-cols-4">
+        {payload.map((item) => (
+          <p key={item.name} className="min-w-0 truncate" style={{ color: item.color }} title={`${item.name}: ${item.value}`}>
+            {item.name}: {typeof item.value === "number" ? item.value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : item.value}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function useDesktopLegend() {
   const [showLegend, setShowLegend] = useState(true);
 
@@ -314,7 +337,7 @@ function MultiLineChart({
       <LineChart data={transformed.chartData}>
         <XAxis dataKey="year_month" tick={{ fill: "black" }} />
         <YAxis tick={{ fill: "black" }} />
-        <Tooltip />
+        <Tooltip content={<CompactTooltip />} />
         {showLegend && <Legend wrapperStyle={{ fontSize: 11 }} />}
 
     {transformed.countries.map((c, index) => (
@@ -370,7 +393,7 @@ function StackedBarChart({ data }: { data: MonthlyPrice[] }) {
       <BarChart data={transformed.chartData}>
         <XAxis dataKey="year_month" tick={{ fill: "black" }} />
         <YAxis tick={{ fill: "black" }} />
-        <Tooltip />
+        <Tooltip content={<CompactTooltip />} />
         {showLegend && <Legend wrapperStyle={{ fontSize: 11 }} />}
 
         {transformed.countries.map((c, index) => (
