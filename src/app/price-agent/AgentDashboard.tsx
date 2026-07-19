@@ -66,7 +66,7 @@ export default function AgentDashboard() {
       <section className="mx-auto max-w-6xl p-4 sm:p-6 md:p-10">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">Read-only database chat</p>
         <h1 className="mt-2 text-3xl font-bold">Product Price Master Agent</h1>
-        <p className="mt-3 max-w-4xl text-slate-600">Ask any product-price question. The agent creates and executes one read-only SQL query against <code>detail_price</code>, then returns its table. Price analysis always uses price ÷ <code>quantity_standardized</code>; dates use <code>timestamp_extract_utc</code>. No web search.</p>
+        <p className="mt-3 max-w-4xl text-slate-600">Ask any product-price question. The agent creates and executes one read-only SQL query against <code>detail_price</code>, then returns its table. Price analysis always uses unit price (= price ÷ <code>quantity_standardized</code>); dates use <code>timestamp_extract_utc</code>. No web search.</p>
 
         <div className="mt-7 space-y-5">
           {messages.length === 0 && <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-600">Try: “Rank the five most expensive rice products per kilogram in Japan by median USD price in 2026.”</div>}
